@@ -4,7 +4,7 @@
 ## 以下为各系统在物理机器上的测试
  <h2 align="center">
 	Win8.1
-	<img src="ScreenShot\Win10_8.1.jpg" alt="Win8.1"/>
+	<img src="ScreenShot\Win_8.1.jpg" alt="Win8.1"/>
 	Win10 1909
 	<img src="ScreenShot\Win10_1909.jpg" alt="Win10 1909"/>
 	Win10 20H2
