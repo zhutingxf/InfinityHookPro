@@ -3,6 +3,11 @@
 
 ### 以下为各系统在物理机器上的测试
  <h4 align="center">
+	Win7 x64
+	<img src="ScreenShot\Win7_X64.jpg" alt="Win7 x64"/>
+	<p>
+		&nbsp;
+	</p>
 	Win8.1
 	<img src="ScreenShot\Win_8.1.jpg" alt="Win8.1"/>
 	<p>
