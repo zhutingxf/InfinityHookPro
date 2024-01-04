@@ -50,4 +50,9 @@
 	</p>
 	Win11 22631
 	<img src="ScreenShot\Win11_22631.jpg" alt="Win11 22631"/>
+	<p>
+		&nbsp;
+	</p>
+	Win11 26016
+	<img src="ScreenShot\Win11_26016.jpg" alt="Win11 26016"/>
 </h4>
