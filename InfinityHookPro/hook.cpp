@@ -620,7 +620,29 @@ namespace KHook
                 {
                         DbgPrintEx(0, 0, "[%s] Wait For Detect Thread Termination \n", __FUNCTION__);
                         KeWaitForSingleObject(m_DetectThreadObject, Executive, KernelMode, false, NULL);
-                        ObDereferenceObject(m_DetectThreadObject);
+                        //Win7 7600 系统为 ObDereferenceObject, Win7 7601及以上为ObfDereferenceObject
+                        //采用MmGetSystemRoutineAddress动态获取相应的函数地址，解决在Win7 7600上不能加载驱动问题
+                        UNICODE_STRING usObfDereferenceObject = RTL_CONSTANT_STRING(L"ObfDereferenceObject");
+                        ObfDereferenceObjectPtr fnObfDereferenceObject = (ObfDereferenceObjectPtr)MmGetSystemRoutineAddress(&usObfDereferenceObject);
+                        if (fnObfDereferenceObject)
+                        {
+                                fnObfDereferenceObject(m_DetectThreadObject);
+                        }
+                        else
+                        {
+                                
+                                UNICODE_STRING usObDereferenceObject = RTL_CONSTANT_STRING(L"ObDereferenceObject");
+                                ObDereferenceObjectPtr fnObDereferenceObject = (ObDereferenceObjectPtr)MmGetSystemRoutineAddress(&usObDereferenceObject);
+                                if (fnObDereferenceObject)
+                                {
+                                        fnObDereferenceObject(m_DetectThreadObject);
+                                }
+                                else 
+                                {
+                                        DbgPrintEx(0, 0, "[%s] Can't Find ObDereferenceObject or ObfDereferenceObject \n", __FUNCTION__);
+                                }
+                        }
+                        /*ObDereferenceObject(m_DetectThreadObject);*/
                         DbgPrintEx(0, 0, "[%s] Detect Thread Terminated \n", __FUNCTION__);
                 }
                 //m_GetCpuClock值还原要在线程停止之后，否则可能还原后又被线程里的逻辑改为我们的函数了

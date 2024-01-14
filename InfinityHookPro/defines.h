@@ -124,7 +124,8 @@ typedef void(__fastcall* InfinityCallbackPtr)(unsigned long nCallIndex, PVOID* p
 typedef __int64 (*HvlGetQpcBiasPtr)();
 typedef NTSTATUS(*NtCreateFilePtr)(PHANDLE, ACCESS_MASK, POBJECT_ATTRIBUTES, PIO_STATUS_BLOCK, PLARGE_INTEGER, ULONG, ULONG, ULONG, ULONG, PVOID, ULONG);
 typedef NTSTATUS(NTAPI* NtTraceControlPtr)(ULONG, PVOID, ULONG, PVOID, ULONG, PULONG);
-
+typedef LONG_PTR(FASTCALL* ObfDereferenceObjectPtr)(PVOID);
+typedef LONG_PTR(NTAPI* ObDereferenceObjectPtr)(PVOID);
 //typedef struct _GLOBAL_INFORMATION
 //{
 //        bool DetectThreadTerminated;
