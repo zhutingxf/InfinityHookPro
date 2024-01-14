@@ -34,8 +34,13 @@ InfinityHook 支持Win7 到 Win11 最新版本，虚拟机环境及物理机环�
 
 ### 以下为各系统在物理机器上的测试
  <h4 align="center">
-	Win7 x64
-	<img src="ScreenShot\Win7_X64.jpg" alt="Win7 x64"/>
+	Win7 x64 7600
+	<img src="ScreenShot\Win7_7600.jpg" alt="Win7 x64 7600"/>
+	<p>
+		&nbsp;
+	</p>
+	Win7 x64 7601
+	<img src="ScreenShot\Win7_X64.jpg" alt="Win7 x64 7601"/>
 	<p>
 		&nbsp;
 	</p>
