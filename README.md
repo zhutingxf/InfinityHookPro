@@ -11,6 +11,7 @@ InfinityHook 支持Win7 到 Win11 最新版本，虚拟机环境及物理机环�
 * Windows 11 22621 物理机上测试了 24 小时未触发
 * Windows 11 22631 物理机上测试了 48 小时未触发
 * Windows 11 26016 预览版 物理机上测试了 48 小时未触发
+* Windows 11 24H2  物理机上测试了 48 小时未触发
 
 **PS** 
 
@@ -91,4 +92,9 @@ InfinityHook 支持Win7 到 Win11 最新版本，虚拟机环境及物理机环�
 	</p>
 	Win11 26016
 	<img src="ScreenShot\Win11_26016.jpg" alt="Win11 26016"/>
+	<p>
+		&nbsp;
+	</p>
+	Win11 24H2
+	<img src="ScreenShot\Win11_24H2.png" alt="Win11 24H2"/>
 </h4>

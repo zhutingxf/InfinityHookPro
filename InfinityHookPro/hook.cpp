@@ -106,7 +106,7 @@ namespace KHook
                 // 开始查找当前栈中的ssdt调用
                 for (void** pStackCurrent = pStackMax; pStackCurrent > pStackFrame; --pStackCurrent)
                 {
-                        /*
+                        /*     函数 PerfInfoLogSysCallEntry逆向
                                 Win11 23606 以前 栈中ssdt调用特征, 分别是
                                 mov r9d, 0F33h
                                 mov [rsp+48h+var_20], 501802h
@@ -630,14 +630,14 @@ namespace KHook
                         }
                         else
                         {
-                                
+
                                 UNICODE_STRING usObDereferenceObject = RTL_CONSTANT_STRING(L"ObDereferenceObject");
                                 ObDereferenceObjectPtr fnObDereferenceObject = (ObDereferenceObjectPtr)MmGetSystemRoutineAddress(&usObDereferenceObject);
                                 if (fnObDereferenceObject)
                                 {
                                         fnObDereferenceObject(m_DetectThreadObject);
                                 }
-                                else 
+                                else
                                 {
                                         DbgPrintEx(0, 0, "[%s] Can't Find ObDereferenceObject or ObfDereferenceObject \n", __FUNCTION__);
                                 }
