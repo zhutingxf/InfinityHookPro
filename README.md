@@ -96,5 +96,5 @@ InfinityHook 支持Win7 到 Win11 最新版本，虚拟机环境及物理机环�
 		&nbsp;
 	</p>
 	Win11 24H2
-	<img src="ScreenShot\Win11_24H2.png" alt="Win11 24H2"/>
+	<img src="ScreenShot\Win11_24H2.jpg" alt="Win11 24H2"/>
 </h4>
