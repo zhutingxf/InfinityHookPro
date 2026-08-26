@@ -30,12 +30,12 @@ namespace KHook
         FHvlGetQpcBias m_OriginalHvlGetQpcBias = nullptr;
         CLIENT_ID m_ClientId = { 0 };
 
-        // ĞŞ¸Ä¸ú×ÙÉèÖÃ
+        // ä¿®æ”¹è·Ÿè¸ªè®¾ç½®
         NTSTATUS EventTraceControl(ETWP_TRACE_TYPE nType)
         {
                 const unsigned long nTag = 'VMON';
 
-                // ÉêÇë½á¹¹Ìå¿Õ¼ä
+                // ç”³è¯·ç»“æ„ä½“ç©ºé—´
                 CKCL_TRACE_PROPERTIES* pProperty = (CKCL_TRACE_PROPERTIES*)ExAllocatePoolWithTag(NonPagedPool, PAGE_SIZE, nTag);
                 if (!pProperty)
                 {
@@ -43,7 +43,7 @@ namespace KHook
                         return STATUS_MEMORY_NOT_ALLOCATED;
                 }
 
-                // ÉêÇë±£´æÃû³ÆµÄ¿Õ¼ä
+                // ç”³è¯·ä¿å­˜åç§°çš„ç©ºé—´
                 wchar_t* szProviderName = (wchar_t*)ExAllocatePoolWithTag(NonPagedPool, 256 * sizeof(wchar_t), nTag);
                 if (!szProviderName)
                 {
@@ -52,18 +52,18 @@ namespace KHook
                         return STATUS_MEMORY_NOT_ALLOCATED;
                 }
 
-                // Çå¿ÕÄÚ´æ
+                // æ¸…ç©ºå†…å­˜
                 RtlZeroMemory(pProperty, PAGE_SIZE);
                 RtlZeroMemory(szProviderName, 256 * sizeof(wchar_t));
 
-                // Ãû³Æ¸³Öµ
+                // åç§°èµ‹å€¼
                 RtlCopyMemory(szProviderName, L"Circular Kernel Context Logger", sizeof(L"Circular Kernel Context Logger"));
                 RtlInitUnicodeString(&pProperty->ProviderName, (const wchar_t*)szProviderName);
 
-                // Î¨Ò»±êÊ¶·û
+                // å”¯ä¸€æ ‡è¯†ç¬¦
                 GUID guidCkclSession = { 0x54dea73a, 0xed1f, 0x42a4, { 0xaf, 0x71, 0x3e, 0x63, 0xd0, 0x56, 0xf1, 0x74 } };
 
-                // ½á¹¹ÌåÌî³ä
+                // ç»“æ„ä½“å¡«å……
                 pProperty->Wnode.BufferSize = PAGE_SIZE;
                 pProperty->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
                 pProperty->Wnode.Guid = guidCkclSession;
@@ -73,53 +73,53 @@ namespace KHook
                 pProperty->MaximumBuffers = 2;
                 pProperty->LogFileMode = EVENT_TRACE_BUFFERING_MODE;
 
-                // Ö´ĞĞ²Ù×÷
+                // æ‰§è¡Œæ“ä½œ
                 unsigned long nLength = 0;
                 if (nType == ETWP_TRACE_TYPE::EtwpUpdateTrace) pProperty->EnableFlags = EVENT_TRACE_FLAG_SYSTEMCALL;
                 NTSTATUS ntStatus = NtTraceControl(nType, pProperty, PAGE_SIZE, pProperty, PAGE_SIZE, &nLength);
 
-                // ÊÍ·ÅÄÚ´æ¿Õ¼ä
+                // é‡Šæ”¾å†…å­˜ç©ºé—´
                 ExFreePoolWithTag(szProviderName, nTag);
                 ExFreePoolWithTag(pProperty, nTag);
 
                 return ntStatus;
         }
 
-        // ÎÒÃÇµÄÌæ»»º¯Êı,Õë¶ÔµÄÊÇ´ÓWin7µ½Win10 1909µÄÏµÍ³
+        // æˆ‘ä»¬çš„æ›¿æ¢å‡½æ•°,é’ˆå¯¹çš„æ˜¯ä»Win7åˆ°Win10 1909çš„ç³»ç»Ÿ
         unsigned long long SelfGetCpuClock()
         {
-                // ·Å¹ıÄÚºËÄ£Ê½µÄµ÷ÓÃ
+                // æ”¾è¿‡å†…æ ¸æ¨¡å¼çš„è°ƒç”¨
                 if (ExGetPreviousMode() == KernelMode) return __rdtsc();
 
-                // ÄÃµ½µ±Ç°Ïß³Ì
+                // æ‹¿åˆ°å½“å‰çº¿ç¨‹
                 PKTHREAD pCurrentThread = (PKTHREAD)__readgsqword(0x188);
 
-                // ²»Í¬°æ±¾²»Í¬Æ«ÒÆ
+                // ä¸åŒç‰ˆæœ¬ä¸åŒåç§»
                 unsigned int nCallIndex = 0;
                 if (m_BuildNumber <= 7601) nCallIndex = *(unsigned int*)((unsigned long long)pCurrentThread + 0x1f8);
                 else nCallIndex = *(unsigned int*)((unsigned long long)pCurrentThread + 0x80);
 
-                // ÄÃµ½µ±Ç°Õ»µ×ºÍÕ»¶¥
+                // æ‹¿åˆ°å½“å‰æ ˆåº•å’Œæ ˆé¡¶
                 void** pStackMax = (void**)__readgsqword(0x1a8);
                 void** pStackFrame = (void**)_AddressOfReturnAddress();
 
-                // ¿ªÊ¼²éÕÒµ±Ç°Õ»ÖĞµÄssdtµ÷ÓÃ
+                // å¼€å§‹æŸ¥æ‰¾å½“å‰æ ˆä¸­çš„ssdtè°ƒç”¨
                 for (void** pStackCurrent = pStackMax; pStackCurrent > pStackFrame; --pStackCurrent)
                 {
-                        /*     º¯Êı PerfInfoLogSysCallEntryÄæÏò
-                                Win11 23606 ÒÔÇ° Õ»ÖĞssdtµ÷ÓÃÌØÕ÷, ·Ö±ğÊÇ
+                        /*     å‡½æ•° PerfInfoLogSysCallEntryé€†å‘
+                                Win11 23606 ä»¥å‰ æ ˆä¸­ssdtè°ƒç”¨ç‰¹å¾, åˆ†åˆ«æ˜¯
                                 mov r9d, 0F33h
                                 mov [rsp+48h+var_20], 501802h
-                                Win11 23606 ¼°ÒÔºó Õ»ÖĞssdtµ÷ÓÃÌØÕ÷, ·Ö±ğÊÇ
+                                Win11 23606 åŠä»¥å æ ˆä¸­ssdtè°ƒç”¨ç‰¹å¾, åˆ†åˆ«æ˜¯
                                 mov r9d, 0F33h
                                 mov[rsp + 58h + var_30], 601802h
                         */
-#define INFINITYHOOK_MAGIC_501802 ((unsigned long)0x501802) //Win11 23606 ÒÔÇ°ÏµÍ³ÌØÕ÷Âë
-#define INFINITYHOOK_MAGIC_601802 ((unsigned long)0x601802) //Win11 23606 ¼°ÒÔºóÏµÍ³µÄÌØÕ÷Âë
+#define INFINITYHOOK_MAGIC_501802 ((unsigned long)0x501802) //Win11 23606 ä»¥å‰ç³»ç»Ÿç‰¹å¾ç 
+#define INFINITYHOOK_MAGIC_601802 ((unsigned long)0x601802) //Win11 23606 åŠä»¥åç³»ç»Ÿçš„ç‰¹å¾ç 
 #define INFINITYHOOK_MAGIC_F33 ((unsigned short)0xF33)
 
 
-                        // µÚÒ»¸öÌØÕ÷Öµ¼ì²é
+                        // ç¬¬ä¸€ä¸ªç‰¹å¾å€¼æ£€æŸ¥
                         unsigned long* pValue1 = (unsigned long*)pStackCurrent;
                         if ((*pValue1 != INFINITYHOOK_MAGIC_501802) &&
                                 (*pValue1 != INFINITYHOOK_MAGIC_601802))
@@ -127,52 +127,52 @@ namespace KHook
                                 continue;
                         }
 
-                        // ÕâÀïÎªÊ²Ã´¼õ?ÅäºÏÑ°ÕÒµÚ¶ş¸öÌØÕ÷Öµ°¡
+                        // è¿™é‡Œä¸ºä»€ä¹ˆå‡?é…åˆå¯»æ‰¾ç¬¬äºŒä¸ªç‰¹å¾å€¼å•Š
                         --pStackCurrent;
 
-                        // µÚ¶ş¸öÌØÕ÷Öµ¼ì²é
+                        // ç¬¬äºŒä¸ªç‰¹å¾å€¼æ£€æŸ¥
                         unsigned short* pValue2 = (unsigned short*)pStackCurrent;
                         if (*pValue2 != INFINITYHOOK_MAGIC_F33)
                         {
                                 continue;
                         }
 
-                        // ÌØÕ÷ÖµÆ¥Åä³É¹¦,ÔÙµ¹¹ıÀ´²éÕÒ
+                        // ç‰¹å¾å€¼åŒ¹é…æˆåŠŸ,å†å€’è¿‡æ¥æŸ¥æ‰¾
                         for (; pStackCurrent < pStackMax; ++pStackCurrent)
                         {
-                                // ¼ì²éÊÇ·ñÔÚssdt±íÄÚ
+                                // æ£€æŸ¥æ˜¯å¦åœ¨ssdtè¡¨å†…
                                 unsigned long long* pllValue = (unsigned long long*)pStackCurrent;
                                 if (!(PAGE_ALIGN(*pllValue) >= m_SystemCallTable &&
                                         PAGE_ALIGN(*pllValue) < (void*)((unsigned long long)m_SystemCallTable + (PAGE_SIZE * 2))))
                                         continue;
 
-                                // ÏÖÔÚÒÑ¾­È·¶¨ÊÇssdtº¯Êıµ÷ÓÃÁË
-                                // ÕâÀïÊÇÕÒµ½KiSystemServiceExit
+                                // ç°åœ¨å·²ç»ç¡®å®šæ˜¯ssdtå‡½æ•°è°ƒç”¨äº†
+                                // è¿™é‡Œæ˜¯æ‰¾åˆ°KiSystemServiceExit
                                 void** pSystemCallFunction = &pStackCurrent[9];
 
-                                // µ÷ÓÃ»Øµ÷º¯Êı
+                                // è°ƒç”¨å›è°ƒå‡½æ•°
                                 if (m_InfinityCallback) m_InfinityCallback(nCallIndex, pSystemCallFunction);
 
-                                // Ìø³öÑ­»·
+                                // è·³å‡ºå¾ªç¯
                                 break;
                         }
 
-                        // Ìø³öÑ­»·
+                        // è·³å‡ºå¾ªç¯
                         break;
                 }
 
-                // µ÷ÓÃÔ­º¯Êı
+                // è°ƒç”¨åŸå‡½æ•°
                 return __rdtsc();
         }
 
-        // ÎÒÃÇµÄÌæ»»º¯Êı,Õë¶ÔµÄÊÇWin 1919ÍùÉÏµÄÏµÍ³
+        // æˆ‘ä»¬çš„æ›¿æ¢å‡½æ•°,é’ˆå¯¹çš„æ˜¯Win 1919å¾€ä¸Šçš„ç³»ç»Ÿ
         EXTERN_C __int64 FakeHvlGetQpcBias()
         {
-                // ÎÒÃÇµÄ¹ıÂËº¯Êı
+                // æˆ‘ä»¬çš„è¿‡æ»¤å‡½æ•°
                 SelfGetCpuClock();
 
-                // ÕâÀïÊÇÕæÕıHvlGetQpcBias×öµÄÊÂÇé
-                 //ÎïÀí»úÉÏ HvlpReferenceTscPageÖ¸ÕëÖµÎª¿Õ
+                // è¿™é‡Œæ˜¯çœŸæ­£HvlGetQpcBiasåšçš„äº‹æƒ…
+                 //ç‰©ç†æœºä¸Š HvlpReferenceTscPageæŒ‡é’ˆå€¼ä¸ºç©º
                 if (*((unsigned long long*)m_HvlpReferenceTscPage) != 0)
                 {
                         return *((unsigned long long*)(*((unsigned long long*)m_HvlpReferenceTscPage)) + 3);
@@ -180,59 +180,59 @@ namespace KHook
                 return 0;
         }
 
-        // ¼ì²âÀı³Ì
+        // æ£€æµ‹ä¾‹ç¨‹
         void DetectThreadRoutine(void*)
         {
                 while (m_DetectThreadStatus)
                 {
-                        // Ïß³Ì³£ÓÃĞİÃß
+                        // çº¿ç¨‹å¸¸ç”¨ä¼‘çœ 
                         KUtils::Sleep(1000);
-                        // GetCpuClock»¹ÊÇÒ»¸öº¯ÊıÖ¸Õë
+                        // GetCpuClockè¿˜æ˜¯ä¸€ä¸ªå‡½æ•°æŒ‡é’ˆ
                         if (m_BuildNumber <= 18363)
                         {
 
                                 if (MmIsAddressValid(m_GetCpuClock) && MmIsAddressValid(*m_GetCpuClock))
                                 {
-                                        // Öµ²»Ò»Ñù,±ØĞëÖØĞÂ¹Ò¹³
+                                        // å€¼ä¸ä¸€æ ·,å¿…é¡»é‡æ–°æŒ‚é’©
                                         if (SelfGetCpuClock != *m_GetCpuClock)
                                         {
                                                 DbgPrintEx(0, 0, "[%s] fix 0x%p 0x%p \n", __FUNCTION__, m_GetCpuClock, MmIsAddressValid(m_GetCpuClock) ? *m_GetCpuClock : 0);
                                                 if (Initialize(m_InfinityCallback)) Start();
                                         }
                                 }
-                                else Initialize(m_InfinityCallback); // GetCpuClockÎŞĞ§ºóÒªÖØĞÂ»ñÈ¡
+                                else Initialize(m_InfinityCallback); // GetCpuClockæ— æ•ˆåè¦é‡æ–°è·å–
                         }
                         LARGE_INTEGER li = KeQueryPerformanceCounter(NULL);
                         //DbgPrintEx(0, 0, "[%s] Tick Count %lld \n", __FUNCTION__, li.QuadPart);
                 }
                 PsTerminateSystemThread(STATUS_SUCCESS);
         }
-#define HALP_PERFORMANCE_COUNTER_TYPE_OFFSET (0xE4)  //HalpPerformanceCounterÀàĞÍÖµÆ«ÒÆ£¬¸ÃÖµÔÚÎïÀí»úÆ÷ÖĞÎª5£¬ĞéÄâ»úÖĞ Win11 22621 ÒÔÉÏÎª7, ÒÔÏÂÎª 8
-#define HALP_PERFORMANCE_COUNTER_BASE_RATE_OFFSET (0xC0) //HalpPerformanceCounter»ù±¾ËÙ¶È±¶ÂÊµØÖ·  ĞéÄâ»úÖĞÎªÖµÎª 0x989680=10000000£¬ ÎïÀí»úÖĞÎªÔ¼2000000000
-#define HALP_PERFORMANCE_COUNTER_TYPE_PHYSICAL_MACHINE  (0x5) //ÎïÀí»úÖĞHalpPerformanceCounterµÄÀàĞÍ
-#define HALP_PERFORMANCE_COUNTER_BASE_RATE (10000000i64) //»ù±¾ËÙ¶È
+#define HALP_PERFORMANCE_COUNTER_TYPE_OFFSET (0xE4)  //HalpPerformanceCounterç±»å‹å€¼åç§»ï¼Œè¯¥å€¼åœ¨ç‰©ç†æœºå™¨ä¸­ä¸º5ï¼Œè™šæ‹Ÿæœºä¸­ Win11 22621 ä»¥ä¸Šä¸º7, ä»¥ä¸‹ä¸º 8
+#define HALP_PERFORMANCE_COUNTER_BASE_RATE_OFFSET (0xC0) //HalpPerformanceCounteråŸºæœ¬é€Ÿåº¦å€ç‡åœ°å€  è™šæ‹Ÿæœºä¸­ä¸ºå€¼ä¸º 0x989680=10000000ï¼Œ ç‰©ç†æœºä¸­ä¸ºçº¦2000000000
+#define HALP_PERFORMANCE_COUNTER_TYPE_PHYSICAL_MACHINE  (0x5) //ç‰©ç†æœºä¸­HalpPerformanceCounterçš„ç±»å‹
+#define HALP_PERFORMANCE_COUNTER_BASE_RATE (10000000i64) //åŸºæœ¬é€Ÿåº¦
 
 
         bool Initialize(InfinityCallbackPtr pCallback)
         {
                 if (!m_DetectThreadStatus) return false;
 
-                // »Øµ÷º¯ÊıÖ¸Õë¼ì²é
+                // å›è°ƒå‡½æ•°æŒ‡é’ˆæ£€æŸ¥
                 DbgPrintEx(0, 0, "[%s] ssdt call back ptr is 0x%p \n", __FUNCTION__, pCallback);
                 if (!MmIsAddressValid(pCallback)) return false;
                 else m_InfinityCallback = pCallback;
 
-                // ÏÈ³¢ÊÔ¹Ò¹³
+                // å…ˆå°è¯•æŒ‚é’©
                 if (!NT_SUCCESS(EventTraceControl(EtwpUpdateTrace)))
                 {
-                        // ÎŞ·¨¿ªÆôCKCL
+                        // æ— æ³•å¼€å¯CKCL
                         if (!NT_SUCCESS(EventTraceControl(EtwpStartTrace)))
                         {
                                 DbgPrintEx(0, 0, "[%s] start ckcl fail \n", __FUNCTION__);
                                 return false;
                         }
 
-                        // ÔÙ´Î³¢ÊÔ¹Ò¹³
+                        // å†æ¬¡å°è¯•æŒ‚é’©
                         if (!NT_SUCCESS(EventTraceControl(EtwpUpdateTrace)))
                         {
                                 DbgPrintEx(0, 0, "[%s] syscall ckcl fail \n", __FUNCTION__);
@@ -240,18 +240,18 @@ namespace KHook
                         }
                 }
 
-                // »ñÈ¡ÏµÍ³°æ±¾ºÅ
+                // è·å–ç³»ç»Ÿç‰ˆæœ¬å·
                 m_BuildNumber = KUtils::GetSystemBuildNumber();
                 DbgPrintEx(0, 0, "[%s] build number is %ld \n", __FUNCTION__, m_BuildNumber);
                 if (!m_BuildNumber) return false;
 
-                // »ñÈ¡ÏµÍ³»ùÖ·
+                // è·å–ç³»ç»ŸåŸºå€
                 unsigned long long ntoskrnl = KUtils::GetModuleAddress("ntoskrnl.exe", nullptr);
                 DbgPrintEx(0, 0, "[%s] ntoskrnl address is 0x%llX \n", __FUNCTION__, ntoskrnl);
                 if (!ntoskrnl) return false;
 
-                // ÕâÀï²»Í¬ÏµÍ³²»Í¬Î»ÖÃ
-                // https://github.com/FiYHer/InfinityHookPro/issues/17  win10 21h2.2130 °²×° KB5018410 ²¹¶¡ºóĞèÒªÊ¹ÓÃĞÂµÄÌØÕ÷Âë 
+                // è¿™é‡Œä¸åŒç³»ç»Ÿä¸åŒä½ç½®
+                // https://github.com/FiYHer/InfinityHookPro/issues/17  win10 21h2.2130 å®‰è£… KB5018410 è¡¥ä¸åéœ€è¦ä½¿ç”¨æ–°çš„ç‰¹å¾ç  
                 unsigned long long EtwpDebuggerData = KUtils::FindPatternImage(ntoskrnl, "\x00\x00\x2c\x08\x04\x38\x0c", "??xxxxx", ".text");
                 if (!EtwpDebuggerData) EtwpDebuggerData = KUtils::FindPatternImage(ntoskrnl, "\x00\x00\x2c\x08\x04\x38\x0c", "??xxxxx", ".data");
                 if (!EtwpDebuggerData) EtwpDebuggerData = KUtils::FindPatternImage(ntoskrnl, "\x00\x00\x2c\x08\x04\x38\x0c", "??xxxxx", ".rdata");
@@ -259,36 +259,36 @@ namespace KHook
                 if (!EtwpDebuggerData) return false;
                 m_EtwpDebuggerData = (void*)EtwpDebuggerData;
 
-                // ÕâÀïÔİÊ±²»ÖªµÀÔõÃ´¶¨Î»,Æ«ÒÆ0x10ÔÚÈ«²¿ÏµÍ³¶¼Ò»Ñù
+                // è¿™é‡Œæš‚æ—¶ä¸çŸ¥é“æ€ä¹ˆå®šä½,åç§»0x10åœ¨å…¨éƒ¨ç³»ç»Ÿéƒ½ä¸€æ ·
                 m_EtwpDebuggerDataSilo = *(void***)((unsigned long long)m_EtwpDebuggerData + 0x10);
                 DbgPrintEx(0, 0, "[%s] etwp debugger data silo is 0x%p \n", __FUNCTION__, m_EtwpDebuggerDataSilo);
                 if (!m_EtwpDebuggerDataSilo) return false;
 
-                // ÕâÀïÒ²²»ÖªµÀÔõÃ´¶¨Î»,Æ«ÒÆ0x2ÔÚÈ«²¿ÏµÍ³¶¼Å¶Ò»Ñù
+                // è¿™é‡Œä¹Ÿä¸çŸ¥é“æ€ä¹ˆå®šä½,åç§»0x2åœ¨å…¨éƒ¨ç³»ç»Ÿéƒ½å“¦ä¸€æ ·
                 m_CkclWmiLoggerContext = m_EtwpDebuggerDataSilo[0x2];
                 DbgPrintEx(0, 0, "[%s] ckcl wmi logger context is 0x%p \n", __FUNCTION__, m_CkclWmiLoggerContext);
                 if (!m_CkclWmiLoggerContext) return false;
 
-                /*  Win7ÏµÍ³²âÊÔ,m_GetCpuClock¸ÃÖµ»á¸Ä±ä¼¸´Î,ÏÈ½×¶ÎÊ¹ÓÃÏß³Ì¼ì²âºóĞŞ¸´
-                *   ¿¿,Win11µÄÆ«ÒÆ±ä³ÉÁË0x18,¿´Â©µÄº¦ÎÒµ÷ÊÔÕâÃ´¾Ã  -_-
-                *   ÕâÀï×Ü½áÒ»ÏÂ,Win7ºÍWin11¶¼ÊÇÆ«ÒÆ0x18,ÆäËüµÄÊÇ0x28
+                /*  Win7ç³»ç»Ÿæµ‹è¯•,m_GetCpuClockè¯¥å€¼ä¼šæ”¹å˜å‡ æ¬¡,å…ˆé˜¶æ®µä½¿ç”¨çº¿ç¨‹æ£€æµ‹åä¿®å¤
+                *   é ,Win11çš„åç§»å˜æˆäº†0x18,çœ‹æ¼çš„å®³æˆ‘è°ƒè¯•è¿™ä¹ˆä¹…  -_-
+                *   è¿™é‡Œæ€»ç»“ä¸€ä¸‹,Win7å’ŒWin11éƒ½æ˜¯åç§»0x18,å…¶å®ƒçš„æ˜¯0x28
                 */
-                if (m_BuildNumber <= 7601 || m_BuildNumber >= 22000) m_GetCpuClock = (void**)((unsigned long long)m_CkclWmiLoggerContext + 0x18); // Win7°æ±¾ÒÔ¼°¸ü¾É, Win11Ò²ÊÇ
-                else m_GetCpuClock = (void**)((unsigned long long)m_CkclWmiLoggerContext + 0x28); // Win8 -> Win10È«ÏµÍ³
+                if (m_BuildNumber <= 7601 || m_BuildNumber >= 22000) m_GetCpuClock = (void**)((unsigned long long)m_CkclWmiLoggerContext + 0x18); // Win7ç‰ˆæœ¬ä»¥åŠæ›´æ—§, Win11ä¹Ÿæ˜¯
+                else m_GetCpuClock = (void**)((unsigned long long)m_CkclWmiLoggerContext + 0x28); // Win8 -> Win10å…¨ç³»ç»Ÿ
                 if (!MmIsAddressValid(m_GetCpuClock)) return false;
                 DbgPrintEx(0, 0, "[%s] get cpu clock is 0x%p \n", __FUNCTION__, *m_GetCpuClock);
 
-                // ÄÃµ½ssdtÖ¸Õë
+                // æ‹¿åˆ°ssdtæŒ‡é’ˆ
                 m_SystemCallTable = PAGE_ALIGN(KUtils::GetSyscallEntry(ntoskrnl));
                 DbgPrintEx(0, 0, "[%s] syscall table is 0x%p \n", __FUNCTION__, m_SystemCallTable);
                 if (!m_SystemCallTable) return false;
 
-                if (m_BuildNumber > 18363) // ¼´°æ±¾1909
+                if (m_BuildNumber > 18363) // å³ç‰ˆæœ¬1909
                 {
-                        /* HvlGetQpcBiasº¯ÊıÄÚ²¿ĞèÒªÓÃµ½Õâ¸ö½á¹¹
-                        *   ËùÒÔÎÒÃÇÊÖ¶¯¶¨Î»Õâ¸ö½á¹¹
+                        /* HvlGetQpcBiaså‡½æ•°å†…éƒ¨éœ€è¦ç”¨åˆ°è¿™ä¸ªç»“æ„
+                        *   æ‰€ä»¥æˆ‘ä»¬æ‰‹åŠ¨å®šä½è¿™ä¸ªç»“æ„
                         */
-                        // ÌØÕ÷ÂëÎª Win10 18363 ÖÁ Win11 22631È«Æ½Ì¨Í¨ÓÃ
+                        // ç‰¹å¾ç ä¸º Win10 18363 è‡³ Win11 22631å…¨å¹³å°é€šç”¨
                         unsigned long long addressHvlpReferenceTscPage = KUtils::FindPatternImage(ntoskrnl,
                                 "\x48\x8b\x05\x00\x00\x00\x00\x48\x8b\x40\x00\x48\x8b\x0d\x00\x00\x00\x00\x48\xf7\xe2",
                                 "xxx????xxx?xxx????xxx");
@@ -300,22 +300,22 @@ namespace KHook
                         m_HvlpReferenceTscPage = reinterpret_cast<unsigned long long>(reinterpret_cast<char*>(addressHvlpReferenceTscPage) + 7 + *reinterpret_cast<int*>(reinterpret_cast<char*>(addressHvlpReferenceTscPage) + 3));
                         DbgPrintEx(0, 0, "[%s] HvlpReferenceTscPage is 0x%llX \n", __FUNCTION__, m_HvlpReferenceTscPage);
                         if (!m_HvlpReferenceTscPage) return false;
-                        //-----------------------------------HvlpReferenceTscPageµÄÔ­Ê¼Öµ----------------------------
-                        //-----------------------------ĞéÄâ»ú------------------ÎïÀí»ú-----------------------
-                        //Win10  20H2                        ÓĞ                                  ¿Õ
-                        //Win10  21H1                        ÓĞ                                  ¿Õ
-                        //Win10  21H2                        ÓĞ                                  ¿Õ
-                        //Win10  22H2                        ÓĞ                                  ¿Õ
-                        //Win11  22000                       ÓĞ                                  ¿Õ
-                        //Win11  22621                       ÓĞ                                  ¿Õ
-                        //Win11  22631                       ÓĞ                                  ¿Õ
+                        //-----------------------------------HvlpReferenceTscPageçš„åŸå§‹å€¼----------------------------
+                        //-----------------------------è™šæ‹Ÿæœº------------------ç‰©ç†æœº-----------------------
+                        //Win10  20H2                        æœ‰                                  ç©º
+                        //Win10  21H1                        æœ‰                                  ç©º
+                        //Win10  21H2                        æœ‰                                  ç©º
+                        //Win10  22H2                        æœ‰                                  ç©º
+                        //Win11  22000                       æœ‰                                  ç©º
+                        //Win11  22621                       æœ‰                                  ç©º
+                        //Win11  22631                       æœ‰                                  ç©º
                         DbgPrintEx(0, 0, "[%s] HvlpReferenceTscPage Value Is 0x%llX \n", __FUNCTION__, *reinterpret_cast<unsigned long long*>(m_HvlpReferenceTscPage));
                         //if (*reinterpret_cast<unsigned long long*>(m_HvlpReferenceTscPage) == 0) return false; 
 
-                        /* ÕâÀïÎÒÃÇ²éÕÒµ½HvlGetQpcBiasµÄÖ¸Õë
-                        *   ÏêÏ¸½éÉÜ¿ÉÒÔ¿´https://www.freebuf.com/articles/system/278857.html
+                        /* è¿™é‡Œæˆ‘ä»¬æŸ¥æ‰¾åˆ°HvlGetQpcBiasçš„æŒ‡é’ˆ
+                        *   è¯¦ç»†ä»‹ç»å¯ä»¥çœ‹https://www.freebuf.com/articles/system/278857.html
                         */
-                        //ÔÚº¯Êı HalpTimerQueryHostPerformanceCounter ÖĞ
+                        //åœ¨å‡½æ•° HalpTimerQueryHostPerformanceCounter ä¸­
                         //__int64 __fastcall HalpTimerQueryHostPerformanceCounter(_QWORD * a1)
                         //{
                         //        __int64 v2; // rbx
@@ -332,13 +332,13 @@ namespace KHook
                         //        return 0i64;
                         //}
                         unsigned long long addressHvlGetQpcBias = 0;
-                        //HalpTimerQueryHostPerformanceCounterÖĞ²éÕÒ HvlGetQpcBias    ÎïÀí»ú ĞéÄâ»ú HvlGetQpcBias Öµ¶¼Îª0
+                        //HalpTimerQueryHostPerformanceCounterä¸­æŸ¥æ‰¾ HvlGetQpcBias    ç‰©ç†æœº è™šæ‹Ÿæœº HvlGetQpcBias å€¼éƒ½ä¸º0
                         addressHvlGetQpcBias = KUtils::FindPatternImage(ntoskrnl,
-                                "\x48\x8b\x05\x00\x00\x00\x00\x48\x85\xc0\x74\x00\x48\x83\x3d\x00\x00\x00\x00\x00\x74", // Win10 22H2ÒÔÇ° ÒÔ¼° Win11 22621ÒÔÇ°
+                                "\x48\x8b\x05\x00\x00\x00\x00\x48\x85\xc0\x74\x00\x48\x83\x3d\x00\x00\x00\x00\x00\x74", // Win10 22H2ä»¥å‰ ä»¥åŠ Win11 22621ä»¥å‰
                                 "xxx????xxxx?xxx?????x");
                         if (!addressHvlGetQpcBias)
                         {
-                                //¸ÃÌØÕ÷ÂëÈ«¶¼ÓĞ£¬µ«ÉÏ¸öÌØÕ÷ÂëÔÚWin10 22H2 ÒÔ¼° Win11 22621ÒÔÉÏÃ»ÓĞ£¬ÔÙËÑË÷Õâ¸öÊ±¾ÍÒÑ¾­ÊÇ Win10 22H2 ÒÔ¼° Win11 22621ÒÔÉÏ°æ±¾
+                                //è¯¥ç‰¹å¾ç å…¨éƒ½æœ‰ï¼Œä½†ä¸Šä¸ªç‰¹å¾ç åœ¨Win10 22H2 ä»¥åŠ Win11 22621ä»¥ä¸Šæ²¡æœ‰ï¼Œå†æœç´¢è¿™ä¸ªæ—¶å°±å·²ç»æ˜¯ Win10 22H2 ä»¥åŠ Win11 22621ä»¥ä¸Šç‰ˆæœ¬
                                 addressHvlGetQpcBias = KUtils::FindPatternImage(ntoskrnl,
                                         "\x48\x8b\x05\x00\x00\x00\x00\xe8\x00\x00\x00\x00\x48\x03\xd8\x48\x89\x1f",
                                         "xxx????x????xxxxxx");
@@ -351,27 +351,27 @@ namespace KHook
                         m_HvlGetQpcBias = reinterpret_cast<unsigned long long>(reinterpret_cast<char*>(addressHvlGetQpcBias) + 7 + *reinterpret_cast<int*>(reinterpret_cast<char*>(addressHvlGetQpcBias) + 3));
                         DbgPrintEx(0, 0, "[%s] HvlGetQpcBias Is 0x%llX \n", __FUNCTION__, m_HvlGetQpcBias);
                         if (!m_HvlGetQpcBias) return false;
-                        //-----------------------------------HvlGetQpcBiasµÄÔ­Ê¼Öµ----------------------------
-                        //-----------------------------ĞéÄâ»ú------------------ÎïÀí»ú-----------------------
-                        //Win10  20H2                        ¿Õ                                  ¿Õ
-                        //Win10  21H1                        ¿Õ                                  ¿Õ
-                        //Win10  21H2                        ¿Õ                                  ¿Õ
-                        //Win10  22H2                        ¿Õ                                  ¿Õ
-                        //Win11  22000                       ¿Õ                                  ¿Õ
-                        //Win11  22621                       ¿Õ                                  ¿Õ             
-                        //Win11  22631                       ¿Õ                                  ¿Õ
+                        //-----------------------------------HvlGetQpcBiasçš„åŸå§‹å€¼----------------------------
+                        //-----------------------------è™šæ‹Ÿæœº------------------ç‰©ç†æœº-----------------------
+                        //Win10  20H2                        ç©º                                  ç©º
+                        //Win10  21H1                        ç©º                                  ç©º
+                        //Win10  21H2                        ç©º                                  ç©º
+                        //Win10  22H2                        ç©º                                  ç©º
+                        //Win11  22000                       ç©º                                  ç©º
+                        //Win11  22621                       ç©º                                  ç©º             
+                        //Win11  22631                       ç©º                                  ç©º
                         DbgPrintEx(0, 0, "[%s] HvlGetQpcBias Value Is 0x%llX \n", __FUNCTION__, *(unsigned long long*)m_HvlGetQpcBias);
 
 
 
-                        //HalpTimerQueryHostPerformanceCounterÖĞ²éÕÒ HvlGetReferenceTimeUsingTscPagePtr 
-                        //ÎïÀí»ú HvlGetReferenceTimeUsingTscPagePtr ÖµÎª0
+                        //HalpTimerQueryHostPerformanceCounterä¸­æŸ¥æ‰¾ HvlGetReferenceTimeUsingTscPagePtr 
+                        //ç‰©ç†æœº HvlGetReferenceTimeUsingTscPagePtr å€¼ä¸º0
                         unsigned long long addressHvlpGetReferenceTimeUsingTscPage = KUtils::FindPatternImage(ntoskrnl,
-                                "\x48\x8b\x05\x00\x00\x00\x00\x48\x85\xc0\x74\x00\x33\xc9\xe8\x00\x00\x00\x00\x48\x8b\xd8",  //Win10 22H2 ºÍ Win11 22621¼°ÒÔÉÏ
+                                "\x48\x8b\x05\x00\x00\x00\x00\x48\x85\xc0\x74\x00\x33\xc9\xe8\x00\x00\x00\x00\x48\x8b\xd8",  //Win10 22H2 å’Œ Win11 22621åŠä»¥ä¸Š
                                 "xxx????xxxx?xxx????xxx");
                         if (!addressHvlpGetReferenceTimeUsingTscPage)
                         {
-                                //¸ÃÌØÕ÷ÂëÈ«Æ½Ì¨¶¼ÓĞ£¬µ«ÉÏ¸öÌØÕ÷ÂëÔÚ Win10 22H2ÒÔÇ°£¬ ÒÔ¼° Win11 22621 ÒÔÇ°Ã»ÓĞ£¬ÔÙËÑË÷Õâ¸öÊ±¾ÍÒÑ¾­ÊÇ Win10 21H1¡¢21H2¡¢ ÒÔ¼° Win11 22000°æ±¾ÁË
+                                //è¯¥ç‰¹å¾ç å…¨å¹³å°éƒ½æœ‰ï¼Œä½†ä¸Šä¸ªç‰¹å¾ç åœ¨ Win10 22H2ä»¥å‰ï¼Œ ä»¥åŠ Win11 22621 ä»¥å‰æ²¡æœ‰ï¼Œå†æœç´¢è¿™ä¸ªæ—¶å°±å·²ç»æ˜¯ Win10 21H1ã€21H2ã€ ä»¥åŠ Win11 22000ç‰ˆæœ¬äº†
                                 addressHvlpGetReferenceTimeUsingTscPage = KUtils::FindPatternImage(ntoskrnl,
                                         "\x48\x8b\x05\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x03\xd8",
                                         "xxx????x????xxx");
@@ -386,21 +386,21 @@ namespace KHook
                                         *(int*)((char*)(addressHvlpGetReferenceTimeUsingTscPage)+3));
                         DbgPrintEx(0, 0, "[%s] HvlGetReferenceTimeUsingTscPage Is 0x%llX \n", __FUNCTION__, m_HvlpGetReferenceTimeUsingTscPage);
                         if (!m_HvlpGetReferenceTimeUsingTscPage) return false;
-                        //-----------------------HvlpGetReferenceTimeUsingTscPageµÄÔ­Ê¼Öµ----------------
-                        //--------------------------------------ĞéÄâ»ú---------------------------------------------------ÎïÀí»ú-----------------------
-                        //Win10  20H2        nt!HvlGetReferenceTimeUsingTscPage                                                      ¿Õ
-                        //Win10  21H1        nt!HvlGetReferenceTimeUsingTscPage                                                      ¿Õ
-                        //Win10  21H2        nt!HvlGetReferenceTimeUsingTscPage                                                      ¿Õ
-                        //Win10  22H2        nt!HvlGetReferenceTimeUsingTscPage                                                      ¿Õ
-                        //Win11  22000       nt!HvlGetReferenceTimeUsingTscPage                                                      ¿Õ
-                        //Win11  22621       nt!HvlGetReferenceTimeUsingTscPage                                                      ¿Õ                         
-                        //Win11  22631       nt!HvlGetReferenceTimeUsingTscPage                                                      ¿Õ
+                        //-----------------------HvlpGetReferenceTimeUsingTscPageçš„åŸå§‹å€¼----------------
+                        //--------------------------------------è™šæ‹Ÿæœº---------------------------------------------------ç‰©ç†æœº-----------------------
+                        //Win10  20H2        nt!HvlGetReferenceTimeUsingTscPage                                                      ç©º
+                        //Win10  21H1        nt!HvlGetReferenceTimeUsingTscPage                                                      ç©º
+                        //Win10  21H2        nt!HvlGetReferenceTimeUsingTscPage                                                      ç©º
+                        //Win10  22H2        nt!HvlGetReferenceTimeUsingTscPage                                                      ç©º
+                        //Win11  22000       nt!HvlGetReferenceTimeUsingTscPage                                                      ç©º
+                        //Win11  22621       nt!HvlGetReferenceTimeUsingTscPage                                                      ç©º                         
+                        //Win11  22631       nt!HvlGetReferenceTimeUsingTscPage                                                      ç©º
                         DbgPrintEx(0, 0, "[%s] HvlGetReferenceTimeUsingTscPage Value Is 0x%llX \n", __FUNCTION__, *reinterpret_cast<unsigned long long*>(m_HvlpGetReferenceTimeUsingTscPage));
 
 
-                        //HalpTimerQueryHostPerformanceCounterÖĞËÑË÷HalpPerformanceCounter
+                        //HalpTimerQueryHostPerformanceCounterä¸­æœç´¢HalpPerformanceCounter
                         unsigned long long  addressHalpPerformanceCounter = KUtils::FindPatternImage(ntoskrnl,
-                                "\x48\x8b\x05\x00\x00\x00\x00\x48\x8b\xf9\x48\x85\xc0\x74\x00\x83\xb8", //ÌØÕ÷ÂëÈ«Æ½Ì¨Ò»Ñù
+                                "\x48\x8b\x05\x00\x00\x00\x00\x48\x8b\xf9\x48\x85\xc0\x74\x00\x83\xb8", //ç‰¹å¾ç å…¨å¹³å°ä¸€æ ·
                                 "xxx????xxxxxxx?xx");
                         if (!addressHalpPerformanceCounter)
                         {
@@ -414,43 +414,54 @@ namespace KHook
                         DbgPrintEx(0, 0, "[%s] HalpPerformanceCounter Value is 0x%llX \n", __FUNCTION__, *reinterpret_cast<unsigned long long*>(m_HalpPerformanceCounter));
 
 
-                        //ÔÚ KiUpdateTimeÖĞËÑË÷HalpOriginalPerformanceCounter£¬Win10 21H1 ÖÁ Win11 22631 Í¨ÓÃ
+                        //åœ¨ KiUpdateTimeä¸­æœç´¢HalpOriginalPerformanceCounterï¼ŒWin10 21H1 è‡³ Win11 22631 é€šç”¨
                         unsigned long long  addressHalpOriginalPerformanceCounter = KUtils::FindPatternImage(ntoskrnl,
                                 "\x48\x8b\x05\x00\x00\x00\x00\x48\x3b\x00\x0f\x85\x00\x00\x00\x00\xA0",
                                 "xxx????xx?xx????x");
                         if (!addressHalpOriginalPerformanceCounter)
                         {
-                                //Win11 23606 Ö®ºó,ÔÚ KeQueryPerformanceCounter ÖĞËÑË÷HalpOriginalPerformanceCounter
+                                //Win11 23606 ä¹‹å,åœ¨ KeQueryPerformanceCounter ä¸­æœç´¢HalpOriginalPerformanceCounter
                                 addressHalpOriginalPerformanceCounter = KUtils::FindPatternImage(ntoskrnl,
                                         "\x48\x8b\x0d\x00\x00\x00\x00\x4c\x00\x00\x00\x00\x48\x3b\xf1",
                                         "xxx????x????xxx");
-                                if (!addressHalpOriginalPerformanceCounter)
-                                {
-                                        DbgPrintEx(0, 0, "[%s] Find HalpOriginalPerformanceCounter Failed! \n", __FUNCTION__);
-                                        return false;
-                                }
+                                
                         }
-
+                        if (!addressHalpOriginalPerformanceCounter)
+                        {
+                                //åœ¨Win11 29648 åæ±‡ç¼–å¾—åˆ°çš„ç‰¹å¾ç 
+                                addressHalpOriginalPerformanceCounter = KUtils::FindPatternImage(ntoskrnl,
+                                        "\x48\xF7\xE2\x4C\x03\xDA\x48\x8B\x05\x00\x00\x00\x00\x48\x3B\xF0",
+                                        "xxxxxxxxx????xxx");
+                                if (addressHalpOriginalPerformanceCounter)
+                                {
+                                        addressHalpOriginalPerformanceCounter += 6;
+                                }
+                        if (!addressHalpOriginalPerformanceCounter)
+                        {
+                                DbgPrintEx(0, 0, "[%s] Find HalpOriginalPerformanceCounter Failed! \n", __FUNCTION__);
+                                return false;
+                        }
+                        }
                         m_HalpOriginalPerformanceCounter = reinterpret_cast<unsigned long long>
                                 (reinterpret_cast<char*>(addressHalpOriginalPerformanceCounter) + 7 + *reinterpret_cast<int*>(reinterpret_cast<char*>(addressHalpOriginalPerformanceCounter) + 3));
                         DbgPrintEx(0, 0, "[%s] HalpOriginalPerformanceCounter Is 0x%llX \n", __FUNCTION__, m_HalpOriginalPerformanceCounter);
                         if (!m_HalpOriginalPerformanceCounter) return false;
                         DbgPrintEx(0, 0, "[%s] HalpOriginalPerformanceCounter Value Is 0x%llX \n", __FUNCTION__, *reinterpret_cast<unsigned long long*>(m_HalpOriginalPerformanceCounter));
 
-                        //HalpPerformanceCounterÖĞÀàĞÍµÄÖ¸Õë£¬ºóÃæ½øĞĞĞŞ¸ÄÊ±Ê¹ÓÃ
+                        //HalpPerformanceCounterä¸­ç±»å‹çš„æŒ‡é’ˆï¼Œåé¢è¿›è¡Œä¿®æ”¹æ—¶ä½¿ç”¨
                         m_HalpPerformanceCounterType = (ULONG*)((ULONG_PTR)(*(PVOID*)m_HalpPerformanceCounter) + HALP_PERFORMANCE_COUNTER_TYPE_OFFSET);
                         if (!m_HalpPerformanceCounterType)
                         {
                                 DbgPrintEx(0, 0, "[%s] m_HalpPerformanceCounterType Is Null! \n", __FUNCTION__);
                                 return false;
                         }
-                        //ÅĞ¶ÏÔÚÎïÀí»úÉÏÊ±²Å½øĞĞºó±ßµÄ²Ù×÷
+                        //åˆ¤æ–­åœ¨ç‰©ç†æœºä¸Šæ—¶æ‰è¿›è¡Œåè¾¹çš„æ“ä½œ
                         if (*m_HalpPerformanceCounterType == HALP_PERFORMANCE_COUNTER_TYPE_PHYSICAL_MACHINE)
                         {
-                                //ËÑË÷HalpTimerQueryHostPerformanceCounterÖĞÅĞ¶ÏµÄTypeÖµ£¬ÆäÊµÒ²¿ÉÒÔÖ±½ÓÅĞ¶ÏÏµÍ³°æ±¾
-                                //²Î¿¼HalpTimerQueryHostPerformanceCounterÖĞ *(_DWORD *)(HalpPerformanceCounter + 0xE4) != 7 ,
-                                                                //Win11 22000 ¼°ÒÔÏÂÖµÎª8  22621 ÒÔÉÏÎª7
-                                //ÀûÓÃÇ°±ßËÑË÷µÄ addressHalpPerformanceCounter,ÒÔÏÂ×¢ÊÍÎªWin11 22621 HalpTimerQueryHostPerformanceCounter µÄ IDAÄæÏò´úÂë
+                                //æœç´¢HalpTimerQueryHostPerformanceCounterä¸­åˆ¤æ–­çš„Typeå€¼ï¼Œå…¶å®ä¹Ÿå¯ä»¥ç›´æ¥åˆ¤æ–­ç³»ç»Ÿç‰ˆæœ¬
+                                //å‚è€ƒHalpTimerQueryHostPerformanceCounterä¸­ *(_DWORD *)(HalpPerformanceCounter + 0xE4) != 7 ,
+                                                                //Win11 22000 åŠä»¥ä¸‹å€¼ä¸º8  22621 ä»¥ä¸Šä¸º7
+                                //åˆ©ç”¨å‰è¾¹æœç´¢çš„ addressHalpPerformanceCounter,ä»¥ä¸‹æ³¨é‡Šä¸ºWin11 22621 HalpTimerQueryHostPerformanceCounter çš„ IDAé€†å‘ä»£ç 
                                 //.text : 0000000140520A1A 48 8B 05 8F 36 74 00                              mov     rax, cs : HalpPerformanceCounter
                                 //.text : 0000000140520A21 48 8B F9                                                   mov     rdi, rcx
                                 //.text : 0000000140520A24 48 85 C0                                                   test    rax, rax
@@ -459,9 +470,9 @@ namespace KHook
                                 m_VmHalpPerformanceCounterType = *(reinterpret_cast<char*>(addressHalpPerformanceCounter) + 21);
                                 DbgPrintEx(0, 0, "[%s] HalpPerformanceCounterType In Virtual Machine Value is 0x%x \n", __FUNCTION__, m_VmHalpPerformanceCounterType);
 
-                                //·ÖÅäÒ»¸öÍ¬HalpPerformanceCounterÒ»ÑùµÄ¿Õ¼ä£¬ÓÃÀ´Ìæ»»HalpOriginalPerformanceCounter£¬
-                                //Ìæ»»µÄÊı¾İÖĞTypeÎª 5, ±¶ÊıÎª»ù×¼µÄ 10000000, 
-                                //ntoskrnlÖĞµÄÔ­Âß¼­Îª HalpOriginalPerformanceCounter = HalpPerformanceCounter
+                                //åˆ†é…ä¸€ä¸ªåŒHalpPerformanceCounterä¸€æ ·çš„ç©ºé—´ï¼Œç”¨æ¥æ›¿æ¢HalpOriginalPerformanceCounterï¼Œ
+                                //æ›¿æ¢çš„æ•°æ®ä¸­Typeä¸º 5, å€æ•°ä¸ºåŸºå‡†çš„ 10000000, 
+                                //ntoskrnlä¸­çš„åŸé€»è¾‘ä¸º HalpOriginalPerformanceCounter = HalpPerformanceCounter
                                 m_HalpOriginalPerformanceCounterCopy = (ULONGLONG)ExAllocatePoolWithTag(NonPagedPool, 0xFF, 'freP');
                                 if (!m_HalpOriginalPerformanceCounterCopy)
                                 {
@@ -469,12 +480,12 @@ namespace KHook
                                         return false;
                                 }
                                 RtlZeroMemory((PVOID)m_HalpOriginalPerformanceCounterCopy, 0xFF);
-                                //ÉèÖÃ»ù±¾ËÙ¶È£¬
+                                //è®¾ç½®åŸºæœ¬é€Ÿåº¦ï¼Œ
                                 *(PULONGLONG)(m_HalpOriginalPerformanceCounterCopy + HALP_PERFORMANCE_COUNTER_BASE_RATE_OFFSET) = HALP_PERFORMANCE_COUNTER_BASE_RATE;
                                 *(PULONG)(m_HalpOriginalPerformanceCounterCopy + HALP_PERFORMANCE_COUNTER_TYPE_OFFSET) = HALP_PERFORMANCE_COUNTER_TYPE_PHYSICAL_MACHINE;
-                                DbgPrintEx(0, 0, "[%s] m_HalpOriginalPerformanceCounterCopy£º0x%llX \n", __FUNCTION__, m_HalpOriginalPerformanceCounterCopy);
+                                DbgPrintEx(0, 0, "[%s] m_HalpOriginalPerformanceCounterCopyï¼š0x%llX \n", __FUNCTION__, m_HalpOriginalPerformanceCounterCopy);
 
-                                // KUSER_SHARED_DATAµÄQpcBias×Ö¶Î£¬ÔÚ´ÓÏµÍ³´ÓË¯Ãß×´Ì¬»Ö¸´Õı³£×´Ì¬ºóÍ£Ö¹Ê±£¬ÏµÍ³Ê±¼äĞŞÕıÊ±Ê¹ÓÃ
+                                // KUSER_SHARED_DATAçš„QpcBiaså­—æ®µï¼Œåœ¨ä»ç³»ç»Ÿä»ç¡çœ çŠ¶æ€æ¢å¤æ­£å¸¸çŠ¶æ€ååœæ­¢æ—¶ï¼Œç³»ç»Ÿæ—¶é—´ä¿®æ­£æ—¶ä½¿ç”¨
                                 PLONGLONG pQpcPointer = (PLONGLONG)0xFFFFF780000003B8;
                                 m_QpcMdl = IoAllocateMdl(pQpcPointer, 8, false, false, NULL);
                                 if (!m_QpcMdl)
@@ -505,28 +516,28 @@ namespace KHook
         {
                 if (!m_InfinityCallback) return false;
 
-                // ÎŞĞ§Ö¸Õë
+                // æ— æ•ˆæŒ‡é’ˆ
                 if (!MmIsAddressValid(m_GetCpuClock))
                 {
                         DbgPrintEx(0, 0, "[%s] get cpu clock vaild \n", __FUNCTION__);
                         return false;
                 }
 
-                /* ÕâÀïÎÒÃÇÇø·ÖÒ»ÏÂÏµÍ³°æ±¾
-                *   ´ÓWin7µ½Win10 1909,m_GetCpuClockÊÇÒ»¸öº¯Êı,ÍùºóµÄ°æ±¾ÊÇÒ»¸öÊıÖµÁË
-                *   ´óÓÚ3Å×Òì³£
-                *   µÈÓÚ3ÓÃrdtsc
-                *   µÈÓÚ2ÓÃoff_140C00A30
-                *   µÈÓÚ1ÓÃKeQueryPerformanceCounter
-                *   µÈÓÚ0ÓÃRtlGetSystemTimePrecise
-                *   ÎÒÃÇµÄ×ö·¨²Î¿¼ÍøÖ·https://www.freebuf.com/articles/system/278857.html
-                *   ÎÒÃÇÕâÀïÔÚ2ÉíÉÏ×öÎÄÕÂ
+                /* è¿™é‡Œæˆ‘ä»¬åŒºåˆ†ä¸€ä¸‹ç³»ç»Ÿç‰ˆæœ¬
+                *   ä»Win7åˆ°Win10 1909,m_GetCpuClockæ˜¯ä¸€ä¸ªå‡½æ•°,å¾€åçš„ç‰ˆæœ¬æ˜¯ä¸€ä¸ªæ•°å€¼äº†
+                *   å¤§äº3æŠ›å¼‚å¸¸
+                *   ç­‰äº3ç”¨rdtsc
+                *   ç­‰äº2ç”¨off_140C00A30
+                *   ç­‰äº1ç”¨KeQueryPerformanceCounter
+                *   ç­‰äº0ç”¨RtlGetSystemTimePrecise
+                *   æˆ‘ä»¬çš„åšæ³•å‚è€ƒç½‘å€https://www.freebuf.com/articles/system/278857.html
+                *   æˆ‘ä»¬è¿™é‡Œåœ¨2èº«ä¸Šåšæ–‡ç« 
                 */
-                // ±£´æGetCpuClockÔ­Ê¼Öµ,ÍË³öÊ±ºÃ»Ö¸´
+                // ä¿å­˜GetCpuClockåŸå§‹å€¼,é€€å‡ºæ—¶å¥½æ¢å¤
                 m_OriginalGetCpuClock = (unsigned long long)(*m_GetCpuClock);
                 if (m_BuildNumber <= 18363)
                 {
-                        // Ö±½ÓĞŞ¸Äº¯ÊıÖ¸Õë
+                        // ç›´æ¥ä¿®æ”¹å‡½æ•°æŒ‡é’ˆ
                         DbgPrintEx(0, 0, "[%s] GetCpuClock Is 0x%p\n", __FUNCTION__, *m_GetCpuClock);
                         *m_GetCpuClock = SelfGetCpuClock;
                         DbgPrintEx(0, 0, "[%s] Update GetCpuClock Is 0x%p\n", __FUNCTION__, *m_GetCpuClock);
@@ -534,24 +545,24 @@ namespace KHook
                 else
                 {
 
-                        /* ÕâÀïÎÒÃÇÉèÖÃÎª2, ÕâÑù×Ó²ÅÄÜµ÷ÓÃoff_140C00A30º¯Êı
-                        *   ÆäÊµ¸ÃÖ¸Õë¾ÍÊÇHalpTimerQueryHostPerformanceCounterº¯Êı
-                        *   ¸Ãº¯ÊıÀïÃæÓÖÓĞÁ½¸öº¯ÊıÖ¸Õë,µÚÒ»¸ö¾ÍÊÇHvlGetQpcBias,¾ÍÊÇÎÒÃÇµÄÄ¿±ê
+                        /* è¿™é‡Œæˆ‘ä»¬è®¾ç½®ä¸º2, è¿™æ ·å­æ‰èƒ½è°ƒç”¨off_140C00A30å‡½æ•°
+                        *   å…¶å®è¯¥æŒ‡é’ˆå°±æ˜¯HalpTimerQueryHostPerformanceCounterå‡½æ•°
+                        *   è¯¥å‡½æ•°é‡Œé¢åˆæœ‰ä¸¤ä¸ªå‡½æ•°æŒ‡é’ˆ,ç¬¬ä¸€ä¸ªå°±æ˜¯HvlGetQpcBias,å°±æ˜¯æˆ‘ä»¬çš„ç›®æ ‡
                         */
                         *m_GetCpuClock = (void*)2;
                         DbgPrintEx(0, 0, "[%s] Update GetCpuClock Is %p \n", __FUNCTION__, *m_GetCpuClock);
 
-                        // ±£´æ¾ÉHvlGetQpcBiasµØÖ·,·½±ãºóÃæÇåÀíµÄÊ±ºò¸´Ô­»·¾³
+                        // ä¿å­˜æ—§HvlGetQpcBiasåœ°å€,æ–¹ä¾¿åé¢æ¸…ç†çš„æ—¶å€™å¤åŸç¯å¢ƒ
                         m_OriginalHvlGetQpcBias = (HvlGetQpcBiasPtr)(*((unsigned long long*)m_HvlGetQpcBias));
 
-                        //ÎïÀí»úHvlpGetReferenceTimeUsingTscPageÎª¿Õ£¬ÔÚĞéÄâ»úÉÏÖ¸ÏòHvlGetReferenceTimeUsingTscPageº¯Êı£¬
-                        //¹ÊÔÚÖµÎª¿ÕÊ±½øĞĞĞŞ¸Ä£¬µ«¸ÄÎªHvlGetReferenceTimeUsingTscPageºóÀ¶ÆÁ£¬³¢ÊÔ¸ÄÎªNtYieldExecutionµ«Î´µ¼³ö£¬¸ÄZwYieldExecutionºóµ¼ÖÂÖØÈë´íÎó£¬
-                        //¾­ÊµÑé¸ÄÎªÒ»¸öÃ»ÓĞ²ÎÊıµÄº¯Êı,º¯Êı·µ»Ø __rdtsc
+                        //ç‰©ç†æœºHvlpGetReferenceTimeUsingTscPageä¸ºç©ºï¼Œåœ¨è™šæ‹Ÿæœºä¸ŠæŒ‡å‘HvlGetReferenceTimeUsingTscPageå‡½æ•°ï¼Œ
+                        //æ•…åœ¨å€¼ä¸ºç©ºæ—¶è¿›è¡Œä¿®æ”¹ï¼Œä½†æ”¹ä¸ºHvlGetReferenceTimeUsingTscPageåè“å±ï¼Œå°è¯•æ”¹ä¸ºNtYieldExecutionä½†æœªå¯¼å‡ºï¼Œæ”¹ZwYieldExecutionåå¯¼è‡´é‡å…¥é”™è¯¯ï¼Œ
+                        //ç»å®éªŒæ”¹ä¸ºä¸€ä¸ªæ²¡æœ‰å‚æ•°çš„å‡½æ•°,å‡½æ•°è¿”å› __rdtsc
                         if (m_HvlpGetReferenceTimeUsingTscPage)
                         {
-                                //²»ÄÜÊ¹ÓÃÔ­À´µÄHvlGetReferenceTimeUsingTscPage£¬ÔÚ HvlpGetReferenceTimeUsingTscPage ÖµÎª¿ÕÊ±£¬º¯ÊıÀïµÄÓĞÊı¾İ½á¹¹Î´³õÊ¼»¯
+                                //ä¸èƒ½ä½¿ç”¨åŸæ¥çš„HvlGetReferenceTimeUsingTscPageï¼Œåœ¨ HvlpGetReferenceTimeUsingTscPage å€¼ä¸ºç©ºæ—¶ï¼Œå‡½æ•°é‡Œçš„æœ‰æ•°æ®ç»“æ„æœªåˆå§‹åŒ–
                                 m_OriginalHvlpGetReferenceTimeUsingTscPage = *((unsigned long long*)m_HvlpGetReferenceTimeUsingTscPage);
-                                if (m_OriginalHvlpGetReferenceTimeUsingTscPage == 0) //Ö»ÔÚHvlpGetReferenceTimeUsingTscPageÖµÎª¿ÕÊ±²ÅÉèÖÃ£¬ÆäËü±£³ÖÔ­Ê¼²»±ä
+                                if (m_OriginalHvlpGetReferenceTimeUsingTscPage == 0) //åªåœ¨HvlpGetReferenceTimeUsingTscPageå€¼ä¸ºç©ºæ—¶æ‰è®¾ç½®ï¼Œå…¶å®ƒä¿æŒåŸå§‹ä¸å˜
                                 {
                                         *((unsigned long long*)m_HvlpGetReferenceTimeUsingTscPage) = (ULONGLONG)FakeGetReferenceTimeUsingTscPage;
                                         DbgPrintEx(0, 0, "[%s] Update HvlpGetReferenceTimeUsingTscPage Value : %p \n", __FUNCTION__, (PVOID)FakeGetReferenceTimeUsingTscPage);
@@ -560,25 +571,25 @@ namespace KHook
                         }
 
 
-                        //Õâ¸öÊÇĞÔÄÜ¼ÆÊıÆ÷µÄÀàĞÍ ÔÚĞéÄâ»úÉÏÎª 7»òÕß8 ÎïÀí»úÉÏÎª 5 ²Î¼û HalpTimerSelectRoles ÖĞµÄ HalpTimerFindIdealPerformanceCounterSource
+                        //è¿™ä¸ªæ˜¯æ€§èƒ½è®¡æ•°å™¨çš„ç±»å‹ åœ¨è™šæ‹Ÿæœºä¸Šä¸º 7æˆ–è€…8 ç‰©ç†æœºä¸Šä¸º 5 å‚è§ HalpTimerSelectRoles ä¸­çš„ HalpTimerFindIdealPerformanceCounterSource
                         m_OriginalHalpPerformanceCounterType = *m_HalpPerformanceCounterType;
                         DbgPrintEx(0, 0, "[%s] Original HalpPerformanceCounterType Value : %d\n", __FUNCTION__, m_OriginalHalpPerformanceCounterType);
-                        if (*m_HalpPerformanceCounterType == HALP_PERFORMANCE_COUNTER_TYPE_PHYSICAL_MACHINE) //Ö»ÔÚÎïÀí»úµÄÇé¿öÏÂ½øĞĞĞŞ¸Ä
+                        if (*m_HalpPerformanceCounterType == HALP_PERFORMANCE_COUNTER_TYPE_PHYSICAL_MACHINE) //åªåœ¨ç‰©ç†æœºçš„æƒ…å†µä¸‹è¿›è¡Œä¿®æ”¹
                         {
-                                //¸ü¸Ä HalpOriginalPerformanceCounter£¬Ô­ÖµÎª m_HalpPerformanceCounterµÄÖµ 
+                                //æ›´æ”¹ HalpOriginalPerformanceCounterï¼ŒåŸå€¼ä¸º m_HalpPerformanceCounterçš„å€¼ 
                                 *(unsigned long long*)m_HalpOriginalPerformanceCounter = m_HalpOriginalPerformanceCounterCopy;
                                 DbgPrintEx(0, 0, "[%s] Update HalpOriginalPerformanceCounter Value: %llX\n", __FUNCTION__, m_HalpOriginalPerformanceCounterCopy);
                                 LARGE_INTEGER li = KeQueryPerformanceCounter(NULL);
                                 DbgPrintEx(0, 0, "[%s] Tick Count %lld \n", __FUNCTION__, li.QuadPart);
-                                //ĞèÒª°ÑĞÔÄÜ¼ÆÊıÆ÷ÀàĞÍ¸ÄÎªĞéÄâ»ú»·¾³ÏÂµÄÅĞ¶ÏÖµ£¬µ÷ÕûÂß¼­ ²Î¼û HalpTimerSelectRoles ÖĞµÄ HalpTimerFindIdealPerformanceCounterSource
-                                *m_HalpPerformanceCounterType = m_VmHalpPerformanceCounterType;  //¸ÄÎªĞéÄâ»ú»·¾³ÖĞµÄÀàĞÍ£¬7»òÕß8
+                                //éœ€è¦æŠŠæ€§èƒ½è®¡æ•°å™¨ç±»å‹æ”¹ä¸ºè™šæ‹Ÿæœºç¯å¢ƒä¸‹çš„åˆ¤æ–­å€¼ï¼Œè°ƒæ•´é€»è¾‘ å‚è§ HalpTimerSelectRoles ä¸­çš„ HalpTimerFindIdealPerformanceCounterSource
+                                *m_HalpPerformanceCounterType = m_VmHalpPerformanceCounterType;  //æ”¹ä¸ºè™šæ‹Ÿæœºç¯å¢ƒä¸­çš„ç±»å‹ï¼Œ7æˆ–è€…8
                                 DbgPrintEx(0, 0, "[%s] Update HalpPerformanceCounterType Value : %d\n", __FUNCTION__, m_VmHalpPerformanceCounterType);
                                 li = KeQueryPerformanceCounter(NULL);
                                 DbgPrintEx(0, 0, "[%s] Tick Count %lld \n", __FUNCTION__, li.QuadPart);
                         }
 
 
-                        // ÉèÖÃ¹³×Ó
+                        // è®¾ç½®é’©å­
                         *((unsigned long long*)m_HvlGetQpcBias) = (unsigned long long)FakeHvlGetQpcBias;
                         DbgPrintEx(0, 0, "[%s] Update HvlGetQpcBias Value is %p \n", __FUNCTION__, FakeHvlGetQpcBias);
 
@@ -610,7 +621,7 @@ namespace KHook
 
         bool Stop()
         {
-                // Í£Ö¹¼ì²âÏß³Ì
+                // åœæ­¢æ£€æµ‹çº¿ç¨‹
                 m_DetectThreadStatus = false;
 
                 bool bResult = NT_SUCCESS(EventTraceControl(EtwpStopTrace)) && NT_SUCCESS(EventTraceControl(EtwpStartTrace));
@@ -620,8 +631,8 @@ namespace KHook
                 {
                         DbgPrintEx(0, 0, "[%s] Wait For Detect Thread Termination \n", __FUNCTION__);
                         KeWaitForSingleObject(m_DetectThreadObject, Executive, KernelMode, false, NULL);
-                        //Win7 7600 ÏµÍ³Îª ObDereferenceObject, Win7 7601¼°ÒÔÉÏÎªObfDereferenceObject
-                        //²ÉÓÃMmGetSystemRoutineAddress¶¯Ì¬»ñÈ¡ÏàÓ¦µÄº¯ÊıµØÖ·£¬½â¾öÔÚWin7 7600ÉÏ²»ÄÜ¼ÓÔØÇı¶¯ÎÊÌâ
+                        //Win7 7600 ç³»ç»Ÿä¸º ObDereferenceObject, Win7 7601åŠä»¥ä¸Šä¸ºObfDereferenceObject
+                        //é‡‡ç”¨MmGetSystemRoutineAddressåŠ¨æ€è·å–ç›¸åº”çš„å‡½æ•°åœ°å€ï¼Œè§£å†³åœ¨Win7 7600ä¸Šä¸èƒ½åŠ è½½é©±åŠ¨é—®é¢˜
                         UNICODE_STRING usObfDereferenceObject = RTL_CONSTANT_STRING(L"ObfDereferenceObject");
                         ObfDereferenceObjectPtr fnObfDereferenceObject = (ObfDereferenceObjectPtr)MmGetSystemRoutineAddress(&usObfDereferenceObject);
                         if (fnObfDereferenceObject)
@@ -645,16 +656,16 @@ namespace KHook
                         /*ObDereferenceObject(m_DetectThreadObject);*/
                         DbgPrintEx(0, 0, "[%s] Detect Thread Terminated \n", __FUNCTION__);
                 }
-                //m_GetCpuClockÖµ»¹Ô­ÒªÔÚÏß³ÌÍ£Ö¹Ö®ºó£¬·ñÔò¿ÉÄÜ»¹Ô­ºóÓÖ±»Ïß³ÌÀïµÄÂß¼­¸ÄÎªÎÒÃÇµÄº¯ÊıÁË
+                //m_GetCpuClockå€¼è¿˜åŸè¦åœ¨çº¿ç¨‹åœæ­¢ä¹‹åï¼Œå¦åˆ™å¯èƒ½è¿˜åŸååˆè¢«çº¿ç¨‹é‡Œçš„é€»è¾‘æ”¹ä¸ºæˆ‘ä»¬çš„å‡½æ•°äº†
                 *m_GetCpuClock = (void*)m_OriginalGetCpuClock;
                 DbgPrintEx(0, 0, "[%s] Restore GetCpuClock is  %p \n", __FUNCTION__, *m_GetCpuClock);
-                // Win10 1909ÒÔÉÏÏµÍ³ĞèÒª»Ö¸´»·¾³
+                // Win10 1909ä»¥ä¸Šç³»ç»Ÿéœ€è¦æ¢å¤ç¯å¢ƒ
                 if (m_BuildNumber > 18363)
                 {
 
                         if (m_HvlpGetReferenceTimeUsingTscPage)
                         {
-                                //»¹Ô­ HvlpGetReferenceTimeUsingTscPageµÄÖµÎªm_OriginalHvlpGetReferenceTimeUsingTscPage£¬Ò²¼´ 0
+                                //è¿˜åŸ HvlpGetReferenceTimeUsingTscPageçš„å€¼ä¸ºm_OriginalHvlpGetReferenceTimeUsingTscPageï¼Œä¹Ÿå³ 0
                                 if (m_OriginalHvlpGetReferenceTimeUsingTscPage == 0)
                                 {
                                         *((unsigned long long*)m_HvlpGetReferenceTimeUsingTscPage) = m_OriginalHvlpGetReferenceTimeUsingTscPage;
@@ -662,20 +673,20 @@ namespace KHook
                                 }
                         }
 
-                        //Ö»ÔÚÎïÀí»úÉÏ½øĞĞÒÔÏÂ»¹Ô­
+                        //åªåœ¨ç‰©ç†æœºä¸Šè¿›è¡Œä»¥ä¸‹è¿˜åŸ
                         if (m_OriginalHalpPerformanceCounterType == HALP_PERFORMANCE_COUNTER_TYPE_PHYSICAL_MACHINE)
                         {
                                 LARGE_INTEGER liBegin = KeQueryPerformanceCounter(NULL);
                                 DbgPrintEx(0, 0, "[%s] Tick Count Before Restore %lld \n", __FUNCTION__, liBegin.QuadPart);
-                                //»¹Ô­ Ë³Ğò±£³ÖÏÂÃæµÄË³Ğò
+                                //è¿˜åŸ é¡ºåºä¿æŒä¸‹é¢çš„é¡ºåº
                                 *m_HalpPerformanceCounterType = m_OriginalHalpPerformanceCounterType;
-                                //²»ÄÜ»¹Ô­m_HalpOriginalPerformanceCounterÎªÔ­Ê¼µÄÖµ m_HalpPerformanceCounter, 
-                                //¶øĞèÒª±£Áôm_HalpOriginalPerformanceCounterÎªm_HalpOriginalPerformanceCounterCopyµÄÖµ
-                                //·ñÔò»¹Ô­ºó¼ÆÊıÆ÷Ê±¼ä·µ»Ø»á±ÈÖ®Ç°Ğ¡ºÜ¶àµ¼ÖÂËÀËø
+                                //ä¸èƒ½è¿˜åŸm_HalpOriginalPerformanceCounterä¸ºåŸå§‹çš„å€¼ m_HalpPerformanceCounter, 
+                                //è€Œéœ€è¦ä¿ç•™m_HalpOriginalPerformanceCounterä¸ºm_HalpOriginalPerformanceCounterCopyçš„å€¼
+                                //å¦åˆ™è¿˜åŸåè®¡æ•°å™¨æ—¶é—´è¿”å›ä¼šæ¯”ä¹‹å‰å°å¾ˆå¤šå¯¼è‡´æ­»é”
                                 //*(unsigned long long*)m_HalpOriginalPerformanceCounter = m_HalpPerformanceCounter;
 
                                 LARGE_INTEGER liEndFix = KeQueryPerformanceCounter(NULL);
-                                //ĞŞÕıË¯ÃßÖ®ºó»Ö¸´Õı³£Í£Ö¹Ê±Ê±¼ä´íÎóµ¼ÖÂÏµÍ³¼ÙËÀÎÊÌâ
+                                //ä¿®æ­£ç¡çœ ä¹‹åæ¢å¤æ­£å¸¸åœæ­¢æ—¶æ—¶é—´é”™è¯¯å¯¼è‡´ç³»ç»Ÿå‡æ­»é—®é¢˜
                                 if (liEndFix.QuadPart - liBegin.QuadPart > HALP_PERFORMANCE_COUNTER_BASE_RATE)
                                 {
                                         LONGLONG llQpcValue = *m_QpcPointer;
